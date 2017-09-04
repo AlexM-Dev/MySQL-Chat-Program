@@ -94,9 +94,9 @@ Public Class frmMain
     Private Sub InitDB()
         If Not myCore_Reader.ListTables.Contains(table) Then
             Dim columns As New List(Of Core.Column)
-            columns.Add(New Core.Column("Name", Core.DataType.TEXT))
-            columns.Add(New Core.Column("Message", Core.DataType.LONGTEXT))
-            columns.Add(New Core.Column("TS", Core.DataType.TEXT))
+            columns.Add(New Core.Column("Name", MySqlDbType.Text))
+            columns.Add(New Core.Column("Message", MySqlDbType.LongText))
+            columns.Add(New Core.Column("TS", MySqlDbType.Text))
             myCore_Writer.CreateTable(table, columns)
         End If
     End Sub
