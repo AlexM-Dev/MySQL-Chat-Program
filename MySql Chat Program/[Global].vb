@@ -5,7 +5,7 @@ Module [Global]
     Friend Const database As String = "chat"
     Friend Const mysql_username As String = "root"
     Friend Const password As String = ""
-    Friend Const table As String = "freechat4"
+    Friend Const table As String = "freechat6"
 
     Friend Const chatformat As String = "[%time%] %name%: %message%"
 

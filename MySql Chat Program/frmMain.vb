@@ -11,7 +11,7 @@ Public Class frmMain
 
     ' Variables that are used at runtime (read & written to)
     Private Username As String = "Default"
-    Private CurrentID As Integer = 0
+    Private EntriesCount As Integer = 0
     Private cancelOperation As Boolean = False
     Private isHistory As Boolean = True
 
@@ -31,7 +31,12 @@ Public Class frmMain
     Private Sub btnSend_Click(sender As Object, e As EventArgs) Handles btnSend.Click
         If txtMessage.Text IsNot "" Then
             Dim sendThread As New Threading.Thread(Sub()
-                                                       myCore_Writer.InsertInto(table, {myCore_Writer.GetLastID(table) + 1, Username, MySqlHelper.EscapeString(txtMessage.Text), Date.Now.ToUniversalTime.ToString})
+                                                       Dim UTCTime As Date = Date.Now.ToUniversalTime
+                                                       myCore_Writer.InsertInto(table,
+                                                                                {(UTCTime - CDate("1/1/1970")).TotalMilliseconds,
+                                                                                Username,
+                                                                                MySqlHelper.EscapeString(txtMessage.Text),
+                                                                                UTCTime.ToString("dd/MM/yyyy HH:mm:ss.fff")})
                                                        InvokeEx(Sub() txtMessage.Clear())
                                                    End Sub)
             sendThread.Start()
@@ -68,18 +73,18 @@ Public Class frmMain
 #Region "Helpers"
     Private Sub Async_ReadMessages()
         While Not cancelOperation
-            Dim newLastID As Integer = myCore_Reader.GetLastID(table)
+            Dim rows As List(Of Object()) = myCore_Reader.GetRows(table)
 
-            If CurrentID < newLastID Then
-                For i As Integer = CurrentID + If(isHistory, 0, 1) To newLastID
-                    Dim result As Object() = myCore_Reader.SelectFromID(table, i)
-                    InvokeEx(Sub() txtHistory.AppendText(FormatString(result, chatformat) & vbCrLf))
+            Dim i As Integer = 0
+            If rows.Count > EntriesCount Then
+                For Each row As Object() In rows
+                    If i >= EntriesCount Then
+                        InvokeEx(Sub() txtHistory.AppendText(FormatString(row, chatformat) & vbCrLf))
+                    End If
+                    i += 1
                 Next
+                EntriesCount = rows.Count
             End If
-
-            isHistory = False
-
-            CurrentID = newLastID
 
             Threading.Thread.Sleep(waitTime)
         End While
@@ -94,10 +99,11 @@ Public Class frmMain
     Private Sub InitDB()
         If Not myCore_Reader.ListTables.Contains(table) Then
             Dim columns As New List(Of Core.Column)
-            columns.Add(New Core.Column("Name", MySqlDbType.Text))
-            columns.Add(New Core.Column("Message", MySqlDbType.LongText))
-            columns.Add(New Core.Column("TS", MySqlDbType.Text))
-            myCore_Writer.CreateTable(table, columns)
+            columns.Add(New Core.Column("ID", "BigInt"))
+            columns.Add(New Core.Column("Name", "Text"))
+            columns.Add(New Core.Column("Message", "LongText"))
+            columns.Add(New Core.Column("TS", "Text"))
+            myCore_Writer.CreateTable(table, columns, False)
         End If
     End Sub
     Private Sub Restart()
